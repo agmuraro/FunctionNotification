@@ -1,5 +1,16 @@
 const { app } = require('@azure/functions');
-const { connectToMongoDB } = require('./mongoConnection');
+const { MongoClient } = require('mongodb');
+const mongoDbUri = process.env.MONGODB_CONNECTION_STRING;
+let client = null;
+
+async function connectToMongoDB() {
+    if (!client) {
+        client = new MongoClient(mongoDbUri);
+        await client.connect();
+        console.log("Connected to MongoDB");
+    }
+    return client.db("ClusterEcommerce");
+}
 
 app.http('getNotification', {
     methods: ['GET'],
