@@ -12,48 +12,27 @@ async function connectToMongoDB() {
     return client.db("ClusterEcommerce");
 }
 
-app.http('updateNotification', {
+app.serviceBusQueue('updateNotification', {
     methods: ['PUT'],
     authLevel: 'anonymous',
-    handler: async (request, context) => {
+    queueName: 'filaput', 
+    connection: 'AzureWebJobsServiceBus',
+    handler: async (message, context) => {
         try {
             const db = await connectToMongoDB();
             const collection = db.collection("notifications");
 
-            const body = await request.json(); 
-
-            const { notificationID, descrição } = body;
-
-            if (!notificationID || !descrição) {
-                return {
-                    status: 400,
-                    body: "Campos 'notificationID' e 'descrição' são obrigatórios"
-                };
-            }
-
-            const result = await collection.updateOne(
-                { notificationID: notificationID }, 
-                { $set: { descrição: descrição } }  
-            );
-
-            if (result.matchedCount === 0) {
-                return {
-                    status: 404,
-                    body: "Notificação não encontrada"
-                };
-            }
-
-            return {
-                status: 200,
-                body: "Notificação atualizada com sucesso"
+            const newNotification = {
+                descrição: "Produto atualizado!!!!"
             };
+
+            await collection.insertOne(newNotification);
+            context.log("Notificação criada com sucesso:", newNotification);
+
         } catch (error) {
-            context.log.error("Erro ao atualizar notificação:", error);
-            return {
-                status: 500,
-                body: "Erro ao atualizar notificação"
-            };
+            context.log.error("Erro ao criar notificação:", error);
         }
     }
 });
+
 

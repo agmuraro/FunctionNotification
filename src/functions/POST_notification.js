@@ -12,41 +12,23 @@ async function connectToMongoDB() {
     return client.db("ClusterEcommerce");
 }
 
-app.http('createNotification', {
+app.serviceBusQueue('createNotification', {
     methods: ['POST'],
     authLevel: 'anonymous',
-    handler: async (request, context) => {
-        try {
-            const db = await connectToMongoDB();
-            const collection = db.collection("notifications");
+    queueName: 'filaproduto', 
+    connection: 'AzureWebJobsServiceBus', 
+    handler: async (message, context) => {
+    try {
+        const db = await connectToMongoDB();
+        const collection = db.collection("notifications");
 
-            const body = await request.json(); 
+        const newNotification = {
+            descrição: "Produto criado com sucesso!!!!!"
+        };
 
-            const { notificationID, descrição } = body;
-
-            if (!notificationID || !descrição) {
-                return {
-                    status: 400,
-                    body: "Campos 'notificationID' e 'descrição' são obrigatórios"
-                };
-            }
-
-            const newNotification = {
-                notificationID: notificationID,
-                descrição: descrição
-            };
-
-            await collection.insertOne(newNotification);
-            return {
-                status: 201,
-                body: "Notificação criada com sucesso!"
-            };
-        } catch (error) {
-            context.log.error("Erro ao criar notificação:", error);
-            return {
-                status: 500,
-                body: "Erro ao criar notificação"
-            };
-        }
+        await collection.insertOne(newNotification);
+        context.log("Notificação criada com sucesso:", newNotification);
+    } catch (error) {
+        context.log.error("Erro ao criar notificação:", error);
     }
-});
+}});
